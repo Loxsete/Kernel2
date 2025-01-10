@@ -14,7 +14,7 @@ all_object_files := $(kernel_object_files) $(x86_64_asm_object_files)
 # Правило для компиляции .c файлов в объектные файлы
 $(kernel_object_files): build/kernel/%.o : src/impl/kernel/%.c
 	mkdir -p $(dir $@) && \
-	gcc -c -I src/intf -ffreestanding $< -o $@
+	gcc -c -I src/intf -ffreestanding -fno-stack-protector $< -o $@
 
 # Правило для компиляции .asm файлов в объектные файлы
 $(x86_64_asm_object_files): build/x86_64/boot/%.o : src/impl/x86_64/boot/%.asm
