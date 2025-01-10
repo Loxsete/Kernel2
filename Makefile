@@ -1,29 +1,36 @@
-# Находим все .c файлы в src/impl/kernel
-kernel_c_source_files := $(shell find src/impl/kernel -name '*.c')
-# Находим все .asm файлы в src/impl/x86_64/boot
-x86_64_asm_source_files := $(shell find src/impl/x86_64/boot -name '*.asm')
+ARCH := x86
+KERNEL := build/arch/$(ARCH)/kernel.elf
+GRUB_ISO := build/arch/$(ARCH)/grub.iso
+KCFLAGS := $(CFLAGS) -ffreestanding -fno-stack-protector -I include -Wall -Wextra -Wpedantic
 
-# Создаем объектные файлы для каждого .c файла
-kernel_object_files := $(patsubst src/impl/kernel/%.c, build/kernel/%.o, $(kernel_c_source_files))
-# Создаем объектные файлы для каждого .asm файла
-x86_64_asm_object_files := $(patsubst src/impl/x86_64/boot/%.asm, build/x86_64/boot/%.o, $(x86_64_asm_source_files))
+KSOURCES := $(shell find src/ -name '*.c' ! -path "*/arch/*") $(shell find src/arch/$(ARCH) -name "*.c")
+ARCH_ASMSOURCES := $(shell find src/arch/$(ARCH) -name '*.asm')
 
-# Все объектные файлы
-all_object_files := $(kernel_object_files) $(x86_64_asm_object_files)
+KOBJECTS := $(patsubst src/%.c, build/%.o, $(KSOURCES))
+ARCH_ASMOBJECTS := $(patsubst src/%.asm, build/%.o, $(ARCH_ASMSOURCES))
+ARCH_LINKER := src/arch/$(ARCH)/linker.ld
 
-# Правило для компиляции .c файлов в объектные файлы
-$(kernel_object_files): build/kernel/%.o : src/impl/kernel/%.c
+OBJECTS := $(ARCH_ASMOBJECTS) $(KOBJECTS)
+
+all: $(KERNEL) $(GRUB_ISO)
+
+build/%.o : src/%.c $(ALWAYS_REBUILD)
 	mkdir -p $(dir $@) && \
-	gcc -c -I src/intf -ffreestanding -fno-stack-protector $< -o $@
+	$(CC) -c $(KCFLAGS) $< -o $@
 
-# Правило для компиляции .asm файлов в объектные файлы
-$(x86_64_asm_object_files): build/x86_64/boot/%.o : src/impl/x86_64/boot/%.asm
+# TODO: rewrite asm sources to gnu assembler
+build/%.o : src/%.asm
 	mkdir -p $(dir $@) && \
 	nasm -f elf64 $< -o $@
 
-.PHONY: build-kernel
-build-kernel: $(all_object_files)
-	mkdir -p dist/x86_64 && \
-	ld -n -o dist/x86_64/kernel.bin -T targets/x86_64/linker.ld $(all_object_files) && \
-	cp dist/x86_64/kernel.bin targets/x86_64/iso/boot/kernel.bin && \
-	grub-mkrescue /usr/lib/grub/i386-pc -o dist/x86_64/kernel.iso targets/x86_64/iso
+$(KERNEL): $(OBJECTS) $(ARCH_LINKER)
+	mkdir -p $(dir $@) && \
+	$(LD) -o $@ -T $(ARCH_LINKER) $(OBJECTS)
+
+$(GRUB_ISO): $(KERNEL)
+	mkdir -p $(dir $@) && \
+	grub-mkrescue -o $@ $(KERNEL) grub/
+
+
+clean:
+	rm -fr build
