@@ -1,0 +1,7 @@
+-Iinclude
+-Wall
+-Wextra
+-Wpedantic
+-fno-stack-protector
+-nostdinc
+-ffreestanding

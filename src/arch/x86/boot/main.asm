@@ -1,11 +1,11 @@
 global start
-global keyboard_handler
+; global keyboard_handler
 global read_port
 global write_port
 global load_idt
 
 extern long_mode_start
-extern keyboard_handler_main
+; extern keyboard_handler_main
 
 section .text
 bits 32
@@ -141,9 +141,9 @@ load_idt:
 	sti 				;turn on interrupts
 	ret
 
-keyboard_handler:                 
-	call    keyboard_handler_main
-	iretd	
+; keyboard_handler:
+;	call    keyboard_handler_main
+;	iretd
 
 section .bss
 align 4096

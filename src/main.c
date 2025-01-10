@@ -1,9 +1,10 @@
-#include <kernel.h>
+#include <hal/init.h> // arch_init
+#include <stdio.h> // kputX
 
 void kernel_main(void) {
-    clear_screen();
-    print("ASINC Startinc \n");
-    print("OS booted!\n");
-    kprint_newline();
-    keyboard_handler_main();    
+    arch_init();
+    kputs("ASINC Startinc \n");
+    kputs("OS booted!\n");
+    kputc('\n');
+    // keyboard_handler_main();
 }
