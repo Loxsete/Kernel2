@@ -10,9 +10,11 @@ void* kalloc(uint32_t size){
     // 16byte padding
     size = (size & ~0xf) + ((size & 0xf)!=0);
 
-    if(size >= heap_size || heap_size - used  < size)
+    if(size >= heap_size || heap_size - used < size)
         return NULL;
+
     for(uint32_t i = 0; i < size; i++)
         heap[i] = 0;
+    used += size;
     return (void*)(heap+size);
 }
