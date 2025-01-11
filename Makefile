@@ -1,7 +1,7 @@
 ARCH := x86
 KERNEL := build/arch/$(ARCH)/kernel.elf
 GRUB_ISO := build/arch/$(ARCH)/grub.iso
-KCFLAGS := $(CFLAGS) -ffreestanding -fno-stack-protector -I include -Wall -Wextra -Wpedantic
+KCFLAGS := $(CFLAGS) -ffreestanding -fno-stack-protector -I include -Wall -Wextra -Wpedantic -nostdinc
 
 KSOURCES := $(shell find src/ -name '*.c' ! -path "*/arch/*") $(shell find src/arch/$(ARCH) -name "*.c")
 ARCH_ASMSOURCES := $(shell find src/arch/$(ARCH) -name '*.asm')
