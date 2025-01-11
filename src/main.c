@@ -1,4 +1,4 @@
-#include <hal/keyboard.h> // arch_init
+#include <hal/init.h> // arch_init
 #include <stdio.h> // kputX
 
 void kernel_main(void) {
