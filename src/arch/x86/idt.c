@@ -27,7 +27,7 @@ __asm__ (
 void x86_idt_init(void) {
     idt_descriptor idtr;
     idtr.size = sizeof(idt_entry) * 256 - 1;
-    idtr.offset = (uint64_t)&idt_table[0];
+    idtr.offset = (uint64_t*)&idt_table[0];
 
     for (uint8_t vector = 0x0; vector < 0x20; vector++) {
         x86_idt_set_descriptor(vector, exception_handler_asm, 0x8E);
