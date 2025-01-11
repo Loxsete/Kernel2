@@ -8,6 +8,8 @@
 #include <stdio.h>
 #include <arch/x86/io.h> // Заголовок для работы с I/O портами
 #include "keyboard_map.h" // Подключаем заголовок с картой клавиатуры
+#include "keyboard_wrapper.h" // Подключаем оболочкк
+
 
 
 #define KBD_DATA_PORT 0x60 // Порт данных клавиатуры
