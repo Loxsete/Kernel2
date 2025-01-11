@@ -2,5 +2,5 @@
 
 #include <stdint.h>
 
-extern char read_port(uint16_t port);
-extern void write_port(uint16_t port, uint8_t data);
+void outb(uint32_t port, uint8_t val);
+uint8_t inb(uint32_t port);

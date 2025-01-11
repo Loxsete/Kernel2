@@ -6,5 +6,6 @@ void kernel_main(void) {
     kputs("ASINC Startinc \n");
     kputs("OS booted!\n");
     kputc('\n');
+    while(1);
     // keyboard_handler_main();
 }
