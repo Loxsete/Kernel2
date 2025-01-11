@@ -11,6 +11,8 @@
 #define PIC_CMD_EOI  0x20
 #define PIC_READ_ISR 0x0b
 
+static void x86_pic_send_eoi(void);
+
 void x86_pic_init(void) {
     // Enable pic
     outb(PIC1_DATA, 0x0);
@@ -50,7 +52,7 @@ uint8_t x86_pic_get_isr(uint8_t pic){
     return isr_;
 }
 
-void x86_pic_send_eoi(void){
+static void x86_pic_send_eoi(void){
     if(x86_pic_get_isr(1) != 0xff)
         outb(PIC2_CMD, PIC_CMD_EOI);
     outb(PIC1_CMD, PIC_CMD_EOI);
