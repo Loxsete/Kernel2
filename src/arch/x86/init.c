@@ -17,6 +17,7 @@ void kbd_handler(void) {
 
 void* x86_io_driver_new(void){
     x86_clear_screen();
+    x86_pic_set_isr_handler(1, kbd_handler);
     return NULL;
 }
 
@@ -35,9 +36,8 @@ driver_ops_t x86_io_driver_ops = {
 };
 
 void arch_init(void){
-    add_driver(&x86_io_driver_ops);
     x86_pic_init();
     x86_idt_init();
     x86_pic_set_isr_handler(0, pit_handler);
-    x86_pic_set_isr_handler(1, kbd_handler);
+    add_driver(&x86_io_driver_ops);
 }
