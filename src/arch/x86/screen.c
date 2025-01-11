@@ -9,12 +9,12 @@ static uint16_t* screen_buf = (uint16_t*)0xb8000;
 
 static uint16_t screen_pos = 0;
 
-void x86_clear_screen(void){
+void x86_clear_screen(void) {
     for(size_t i = 0; i < NUM_COLS*NUM_ROWS; i++)
         screen_buf[i] = 0;
 }
 
-void arch_putc(const char ch){
+void x86_putc(const char ch) {
     if(screen_pos > (NUM_COLS * NUM_ROWS + (ch=='\n')))
         screen_pos -= NUM_COLS; // TODO: scroll up
     if(ch == '\n'){
