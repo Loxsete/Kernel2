@@ -1,4 +1,4 @@
-ARCH := x86
+ARCH := none
 KERNEL := build/arch/$(ARCH)/kernel.elf
 GRUB_ISO := build/arch/$(ARCH)/grub.iso
 KCFLAGS := $(CFLAGS) -ffreestanding -fno-stack-protector -I include -Wall -Wextra -Wpedantic -nostdinc
