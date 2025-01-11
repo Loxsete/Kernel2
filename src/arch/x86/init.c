@@ -12,5 +12,5 @@ void arch_init(void){
     x86_clear_screen();
     x86_pic_init();
     x86_idt_init();
-    x86_pic_set_isr_handler(1, pit_handler);
+    x86_pic_set_isr_handler(0, pit_handler);
 }

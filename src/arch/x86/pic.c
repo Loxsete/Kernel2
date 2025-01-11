@@ -43,7 +43,7 @@ uint8_t x86_pic_get_isr(uint8_t pic){
     if(isr == 0) return 0xff;
 
     uint8_t isr_ = 0;
-    while(isr != 0){
+    while(!(isr&1)){
         isr_++;
         isr>>=1;
     }
