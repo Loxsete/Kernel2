@@ -1,63 +1,76 @@
+#include <arch/x86/screen.h>
+#include <arch/x86/idt.h>
+#include <arch/x86/pic.h>
+#include <hal/init.h>
+#include <hal/driver.h>
+#include <hal/stdio.h>
+#include <stddef.h>
+#include <stdio.h>
+#include <arch/x86/io.h> // Заголовок для работы с I/O портами
+#include "keyboard_map.h" // Подключаем заголовок с картой клавиатуры
+#include "keyboard_wrapper.h" // Подключаем оболочкк
 
-#include "keyboard_wrapper.h"
-#include "keyboard_map.h" // Карта клавиатуры
-#include <arch/x86/io.h>  // Для работы с I/O портами
 
-#define KEYBOARD_BUFFER_SIZE 256
 
-// Буфер клавиатуры
-static char keyboard_buffer[KEYBOARD_BUFFER_SIZE];
-static volatile size_t buffer_head = 0;
-static volatile size_t buffer_tail = 0;
+#define KBD_DATA_PORT 0x60 // Порт данных клавиатуры
 
-static keyboard_event_handler_t user_event_handler = NULL;
-
-// Добавление символа в буфер
-static void keyboard_buffer_push(char c) {
-    size_t next = (buffer_head + 1) % KEYBOARD_BUFFER_SIZE;
-    if (next != buffer_tail) { // Проверяем, чтобы буфер не переполнился
-        keyboard_buffer[buffer_head] = c;
-        buffer_head = next;
-    }
+void arch_init(void) {
+    x86_pic_init();          // Инициализация контроллера прерываний
+    x86_idt_init();          // Инициализация таблицы дескрипторов
+    keyboard_wrapper_init(); // Инициализация оболочки клавиатуры
 }
 
-// Извлечение символа из буфера
-static char keyboard_buffer_pop(void) {
-    if (buffer_head == buffer_tail) {
-        return 0; // Буфер пуст
-    }
-    char c = keyboard_buffer[buffer_tail];
-    buffer_tail = (buffer_tail + 1) % KEYBOARD_BUFFER_SIZE;
-    return c;
+// Функция для чтения символа с клавиатуры
+char x86_kbd_read(void) {
+    // Ждем, пока данные не будут готовы к чтению
+    while ((inb(0x64) & 0x01) == 0); // Проверяем флаг данных в порту 0x64
+    return inb(KBD_DATA_PORT); // Читаем символ из порта данных
+}
+
+// Обработчик для PIT (Programmable Interval Timer)
+void pit_handler(void) {
+    // Здесь можно добавить код для обработки таймера, если нужно
 }
 
 // Обработчик клавиатуры
-static void default_kbd_handler(char scancode) {
-    if (scancode < KEYBOARD_MAP_SIZE) {
-        char c = keyboard_map[scancode];
-        if (c) {
-            if (user_event_handler) {
-                user_event_handler(c);
-            } else {
-                keyboard_buffer_push(c);
-            }
-        }
+
+
+// Обработчик клавиатуры
+void kbd_handler(void) {
+    char ch = x86_kbd_read(); // Читаем символ с клавиатуры
+    if (ch < KEYBOARD_MAP_SIZE && keyboard_map[ch] != 0) { // Проверяем, что символ в пределах массива и не нулевой
+        x86_putc(keyboard_map[ch]); // Выводим соответствующий символ на экран
     }
 }
 
-void register_keyboard_event_handler(keyboard_event_handler_t handler) {
-    user_event_handler = handler;
+// Функция для инициализации драйвера ввода-вывода
+void* x86_io_driver_new(void) {
+    x86_clear_screen(); // Очищаем экран
+    x86_pic_set_isr_handler(1, kbd_handler); // Устанавливаем обработчик для клавиатуры
+    return NULL;
 }
 
-char keyboard_getchar(void) {
-    return keyboard_buffer_pop();
+// Функция для вывода символа
+void x86_io_driver_putc(void* _, const char ch) {
+    (void)_;
+    x86_putc(ch); // Выводим символ
 }
 
-bool keyboard_has_data(void) {
-    return buffer_head != buffer_tail;
+// Описание операций драйвера
+driver_ops_t x86_io_driver_ops = {
+    .new = x86_io_driver_new,
+    .type = DRIVER_TYPE_IO,
+    .type_ops = &(io_driver_ops_t){
+        .putc = x86_io_driver_putc,
+        .read = NULL,
+    }
+};
+
+// Функция инициализации архитектуры
+void arch_init(void) {
+    x86_pic_init(); // Инициализация PIC
+    x86_idt_init(); // Инициализация IDT
+    x86_pic_set_isr_handler(0, pit_handler); // Устанавливаем обработчик для PIT
+    add_driver(&x86_io_driver_ops); // Добавляем драйвер
 }
 
-void keyboard_wrapper_init(void) {
-    // Установка обработчика клавиатуры
-    x86_pic_set_isr_handler(1, default_kbd_handler);
-}
