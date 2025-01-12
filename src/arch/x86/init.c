@@ -1,3 +1,4 @@
+#include <arch/x86/i8042.h>
 #include <arch/x86/screen.h>
 #include <arch/x86/idt.h>
 #include <arch/x86/pic.h>
@@ -7,46 +8,11 @@
 #include <stddef.h>
 #include <stdio.h>
 #include <arch/x86/io.h> // Заголовок для работы с I/O портами
-#include "keyboard_map.h" // Подключаем заголовок с картой клавиатуры
-#include "keyboard_wrapper.h" // Подключаем оболочкк
-
-
-
-#define KBD_DATA_PORT 0x60 // Порт данных клавиатуры
-
-void arch_init(void) {
-    x86_pic_init();          // Инициализация контроллера прерываний
-    x86_idt_init();          // Инициализация таблицы дескрипторов
-    keyboard_wrapper_init(); // Инициализация оболочки клавиатуры
-}
-
-// Функция для чтения символа с клавиатуры
-char x86_kbd_read(void) {
-    // Ждем, пока данные не будут готовы к чтению
-    while ((inb(0x64) & 0x01) == 0); // Проверяем флаг данных в порту 0x64
-    return inb(KBD_DATA_PORT); // Читаем символ из порта данных
-}
-
-// Обработчик для PIT (Programmable Interval Timer)
-void pit_handler(void) {
-    // Здесь можно добавить код для обработки таймера, если нужно
-}
-
-// Обработчик клавиатуры
-
-
-// Обработчик клавиатуры
-void kbd_handler(void) {
-    char ch = x86_kbd_read(); // Читаем символ с клавиатуры
-    if (ch < KEYBOARD_MAP_SIZE && keyboard_map[ch] != 0) { // Проверяем, что символ в пределах массива и не нулевой
-        x86_putc(keyboard_map[ch]); // Выводим соответствующий символ на экран
-    }
-}
 
 // Функция для инициализации драйвера ввода-вывода
 void* x86_io_driver_new(void) {
     x86_clear_screen(); // Очищаем экран
-    x86_pic_set_isr_handler(1, kbd_handler); // Устанавливаем обработчик для клавиатуры
+    x86_i8042_init();
     return NULL;
 }
 
@@ -70,6 +36,5 @@ driver_ops_t x86_io_driver_ops = {
 void arch_init(void) {
     x86_pic_init(); // Инициализация PIC
     x86_idt_init(); // Инициализация IDT
-    x86_pic_set_isr_handler(0, pit_handler); // Устанавливаем обработчик для PIT
     add_driver(&x86_io_driver_ops); // Добавляем драйвер
 }

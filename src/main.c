@@ -1,6 +1,5 @@
 #include <hal/init.h> // arch_init
 #include <stdio.h> // kputX
-#include <shell.h> // kputX
 void kernel_main(void) {
     arch_init();
     kputs("ASINC Startinc \n");

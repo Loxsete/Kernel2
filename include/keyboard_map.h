@@ -1,8 +1,6 @@
 #ifndef KEYBOARD_MAP_H
 #define KEYBOARD_MAP_H
 
-#include <stdint.h>
-
 // Определяем количество символов в таблице
 #define KEYBOARD_MAP_SIZE 256
 
@@ -36,7 +34,7 @@ static const char keyboard_map[KEYBOARD_MAP_SIZE] = {
     [0x19] = 'p', // p
     [0x1A] = '[', // [
     [0x1B] = ']', // ]
-    [0x1C] = 0,   // Enter
+    [0x1C] = '\n',   // Enter
     [0x1D] = 'a', // a
     [0x1E] = 's', // s
     [0x1F] = 'd', // d
@@ -50,7 +48,7 @@ static const char keyboard_map[KEYBOARD_MAP_SIZE] = {
     [0x27] = '\'', // '
     [0x28] = '`', // `
     [0x29] = 0,   // LShift
-    [0x2A] = 0,   // \ 
+    [0x2A] = 0,   // '\'
     [0x2B] = 'z', // z
     [0x2C] = 'x', // x
     [0x2D] = 'c', // c
