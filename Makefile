@@ -3,7 +3,11 @@ KERNEL := build/arch/$(ARCH)/kernel.elf
 GRUB_ISO := build/arch/$(ARCH)/grub.iso
 KCFLAGS := $(CFLAGS) -ffreestanding -fno-stack-protector -I include -Wall -Wextra -Wpedantic -nostdinc
 
-KSOURCES := $(shell find src/ -name '*.c' ! -path "*/arch/*") $(shell find src/arch/$(ARCH) -name "*.c")
+# Добавляем dyn_mem.c в список исходников
+KSOURCES := $(shell find src/ -name '*.c' ! -path "*/arch/*") \
+            $(shell find src/arch/$(ARCH) -name "*.c")
+
+
 ARCH_ASMSOURCES := $(shell find src/arch/$(ARCH) -name '*.asm')
 
 KOBJECTS := $(patsubst src/%.c, build/%.o, $(KSOURCES))
@@ -30,7 +34,6 @@ $(KERNEL): $(OBJECTS) $(ARCH_LINKER)
 $(GRUB_ISO): $(KERNEL)
 	mkdir -p $(dir $@) && \
 	grub-mkrescue -o $@ $(KERNEL) grub/
-
 
 clean:
 	rm -fr build
