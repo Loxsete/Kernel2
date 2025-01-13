@@ -1,6 +1,6 @@
 WorldOs: A Custom Kernel and Operating System
 
-Overview: WorldOs is a custom kernel, and soon to be a full-fledged operating system, being developed by a team of five developers.
+Overview: WorldOs is a custom kernel, and soon to be a full-fledged operating system, being developed by a team of n developers.
 
 Features:
 
