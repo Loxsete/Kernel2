@@ -1,12 +1,32 @@
 #include <fs.h>
 #include <tar.h>
 #include <stdint.h>
-
+#include <stdint.h>
+#include <stddef.h>
 
 
 #define min(a,b) (a<b?a:b)
 
 #define TAR_PADDING 0x200
+
+// Копирование памяти
+void* memcpy(void* dest, const void* src, size_t n) {
+    char* d = dest;
+    const char* s = src;
+    while (n--) {
+        *d++ = *s++;
+    }
+    return dest;
+}
+
+// Заполнение памяти
+void* memset(void* s, int c, size_t n) {
+    unsigned char* p = s;
+    while (n--) {
+        *p++ = (unsigned char)c;
+    }
+    return s;
+}
 
 int memcmp(const void *s1, const void *s2, size_t n) {
     const unsigned char *p1 = s1;
