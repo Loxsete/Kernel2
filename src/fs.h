@@ -7,6 +7,8 @@
 #define READDIR_FILES_MAX 64
 #define FD_MAX 64
 
+void* memcpy(void* dest, const void* src, size_t n);
+void* memset(void* s, int c, size_t n);
 
 typedef enum {
     FILETYPE_NONE = 0,
@@ -41,7 +43,6 @@ typedef struct {
 uint32_t fs_open(char* name, filesystem_info* filesystem, const filesystem_ops* ops);
 uint32_t fs_getsize(uint32_t fd, filesystem_info* filesystem, const filesystem_ops* ops);
 void fs_close(uint32_t fd, filesystem_info* filesystem, const filesystem_ops* ops);
-void* memcpy(void* dest, const void* src, size_t n);
-void* memset(void* s, int c, size_t n);
+
 uint32_t fs_read(uint32_t fd, char* buffer, uint32_t count, filesystem_info* filesystem, const filesystem_ops* ops);
 uint32_t fs_readdir(char* path, uint32_t path_len, char files[READDIR_FILES_MAX][FILENAME_MAX], filesystem_info* filesystem, const filesystem_ops* ops);
