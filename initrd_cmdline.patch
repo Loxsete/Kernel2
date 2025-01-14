@@ -1,0 +1,292 @@
+commit d9a648299433ee064bba2d754330840684e879ce
+Author: m <m@m.m>
+Date:   Tue Jan 14 13:48:16 2025 +0500
+
+    start processing IPL command-line, modules and init data
+
+diff --git a/grub/boot/grub/grub.cfg b/grub/boot/grub/grub.cfg
+index 62fdb43..63eeb7c 100644
+--- a/grub/boot/grub/grub.cfg
++++ b/grub/boot/grub/grub.cfg
+@@ -1,7 +1,15 @@
+-set timeout=0
++set timeout=7
+ set default=0
+ 
+ menuentry "my os" {
+ 	multiboot2 /kernel.elf
+ 	boot
+ }
++
++menuentry "test my os cmdline" {
++	multiboot2 /kernel.elf @ supervisor init arguments
++#	module2 /initrd arguments
++	module2 /boot/grub/grub.cfg
++	boot
++}
++
+diff --git a/include/arch/x86/ipl.h b/include/arch/x86/ipl.h
+new file mode 100644
+index 0000000..9dc9ef2
+--- /dev/null
++++ b/include/arch/x86/ipl.h
+@@ -0,0 +1,7 @@
++#pragma once
++
++#include <stdint.h>
++uint32_t boot_sig;
++uint32_t boot_context;
++
++void ipl(void);
+\ No newline at end of file
+diff --git a/include/ipl_data.h b/include/ipl_data.h
+new file mode 100644
+index 0000000..b7dcb49
+--- /dev/null
++++ b/include/ipl_data.h
+@@ -0,0 +1,20 @@
++#pragma once
++// Initial Program Load data
++
++typedef struct {
++	void* begin;
++	char* cmdline; // module name or command
++	uint32_t size;
++}module_info_t;
++
++module_info_t* ipl_modules;
++uint32_t ipl_module_count;
++
++void* initrd;
++uint32_t initrd_size;
++char* initrd_cmd; // initrd's name or command
++
++//  command line
++char* ipl_cmdline;
++
++char* bootloader_name;
+\ No newline at end of file
+diff --git a/src/arch/x86/boot/main.asm b/src/arch/x86/boot/main.asm
+index ee43ace..d91cf3d 100644
+--- a/src/arch/x86/boot/main.asm
++++ b/src/arch/x86/boot/main.asm
+@@ -1,6 +1,8 @@
+ global start
+ 
+ extern long_mode_start
++extern boot_sig
++extern boot_context
+ 
+ section .text
+ bits 32
+@@ -11,6 +13,8 @@ start:
+ 	mov esp, stack_top
+ 
+ 	call check_multiboot
++	mov [boot_sig], eax
++	mov [boot_context], ebx
+ 	call check_cpuid
+ 	call check_long_mode
+ 
+diff --git a/src/arch/x86/init.c b/src/arch/x86/init.c
+index cdf679f..255ed35 100644
+--- a/src/arch/x86/init.c
++++ b/src/arch/x86/init.c
+@@ -2,6 +2,7 @@
+ #include <arch/x86/screen.h>
+ #include <arch/x86/idt.h>
+ #include <arch/x86/pic.h>
++#include <arch/x86/ipl.h>
+ #include <hal/init.h>
+ #include <hal/driver.h>
+ #include <hal/stdio.h>
+@@ -34,6 +35,7 @@ driver_ops_t x86_io_driver_ops = {
+ 
+ // Функция инициализации архитектуры
+ void arch_init(void) {
++    ipl(); // получение настроек конфигурации системы от мультизагрузчика
+     x86_pic_init(); // Инициализация PIC
+     x86_idt_init(); // Инициализация IDT
+     add_driver(&x86_io_driver_ops); // Добавляем драйвер
+diff --git a/src/arch/x86/ipl.c b/src/arch/x86/ipl.c
+new file mode 100644
+index 0000000..8b231ed
+--- /dev/null
++++ b/src/arch/x86/ipl.c
+@@ -0,0 +1,110 @@
++// initial program load
++#include <arch/x86/ipl.h>
++#include <ipl_data.h>
++
++#define MB2 0x36d76289
++void mb2_ipl(void);
++
++void ipl()
++{
++	switch (boot_sig)
++	{
++	// https://www.gnu.org/software/grub/manual/multiboot2/multiboot.html#Machine-state
++	case MB2:	mb2_ipl(); break;
++    default:;
++	}
++}
++
++//https://www.gnu.org/software/grub/manual/multiboot2/multiboot.html#Boot-information-format
++
++//multiboot2.h
++#define MULTIBOOT_TAG_ALIGN                  8
++#define MULTIBOOT_TAG_TYPE_END               0
++#define MULTIBOOT_TAG_TYPE_CMDLINE           1
++#define MULTIBOOT_TAG_TYPE_BOOT_LOADER_NAME  2
++#define MULTIBOOT_TAG_TYPE_MODULE            3
++
++// TODO: add tagtypes when we need'em
++
++#define multiboot_uint32_t uint32_t
++
++struct multiboot_tag
++{
++    multiboot_uint32_t type;
++    multiboot_uint32_t size;
++};
++
++struct multiboot_tag_string
++{
++    multiboot_uint32_t type;
++    multiboot_uint32_t size;
++    char string[0];
++};
++
++struct multiboot_tag_module
++{
++    multiboot_uint32_t type;
++    multiboot_uint32_t size;
++    multiboot_uint32_t mod_start;
++    multiboot_uint32_t mod_end;
++    char cmdline[0];
++};
++
++void mb2_ipl(void)
++{
++    // process multiboot2 "boot info"
++    char* addr = (char*)(uintptr_t)boot_context;
++
++    ipl_modules = 0;
++    initrd_size = ipl_module_count = 0;
++    ipl_cmdline = initrd_cmd = bootloader_name = 0;
++
++    int modules_count = 0;
++
++    struct multiboot_tag* tag;
++    for (tag = (struct multiboot_tag*)(addr + 8);
++        tag->type != MULTIBOOT_TAG_TYPE_END;
++        tag = (struct multiboot_tag*)((char*)tag
++            + ((tag->size + 7) & ~7)))
++    {
++        switch (tag->type)
++        {
++        case MULTIBOOT_TAG_TYPE_CMDLINE:
++            ipl_cmdline = ((struct multiboot_tag_string*)tag)->string;
++            break;
++        case MULTIBOOT_TAG_TYPE_BOOT_LOADER_NAME:
++            bootloader_name = ((struct multiboot_tag_string*)tag)->string;
++            break;
++        case MULTIBOOT_TAG_TYPE_MODULE:
++            ++modules_count;
++            break;
++        }
++    }
++
++    //insane we are
++    if (modules_count)
++    {
++        ipl_module_count = modules_count;
++        ipl_modules = kalloc(modules_count * sizeof (module_info_t));
++
++        int imod = 0;
++        for (tag = (struct multiboot_tag*)(addr + 8);
++            tag->type != MULTIBOOT_TAG_TYPE_END;
++            tag = (struct multiboot_tag*)((char*)tag
++                + ((tag->size + 7) & ~7)), ++imod)
++            switch (tag->type)
++            case MULTIBOOT_TAG_TYPE_MODULE:
++                ipl_modules[imod].begin = (void*)(uintptr_t)((struct multiboot_tag_module*)tag)->mod_start,
++                ipl_modules[imod].size = ((struct multiboot_tag_module*)tag)->mod_end
++                      - ((struct multiboot_tag_module*)tag)->mod_start,
++                ipl_modules[imod].cmdline = ((struct multiboot_tag_module*)tag)->cmdline;
++    }
++    if (ipl_module_count)
++    {
++        // Let the first module be the initrd ( QEMU style multiboot)
++        initrd = ipl_modules[0].begin;
++        initrd_cmd = ipl_modules[0].cmdline;
++        initrd_size = ipl_modules[0].size;
++    }
++}
++
+diff --git a/src/main.c b/src/main.c
+index f4e3701..bec1ca1 100644
+--- a/src/main.c
++++ b/src/main.c
+@@ -1,9 +1,60 @@
+ #include <hal/init.h> // arch_init
+ #include <stdio.h> // kputX
++#include <stdint.h>
++#include <ipl_data.h> // cmdline
++
++// test cmdline
++static char ipl_info_level;
++void process_cmdline(char* cmdline);
++void show_ipl_info(uint8_t infolevel);
++
+ void kernel_main(void) {
+     arch_init();
+     kputs("ASINC Startinc \n");
+     kputs("OS booted!\n");
+     kputc('\n');
++    process_cmdline(ipl_cmdline);
++
++    // test cmdline
++    if (ipl_info_level)
++        show_ipl_info(ipl_info_level);
++
+     while(1);
+ }
++
++void
++process_cmdline(char* cmdline)
++{
++    // test cmdline
++    ipl_info_level = cmdline && ('@' == cmdline[0]);
++
++}
++
++void 
++show_ipl_info(uint8_t infolevel)
++{
++    if (infolevel > 0)
++    {
++        if (bootloader_name)
++        kputs("\n" "IPLoader: "), kputs(bootloader_name);
++
++        if (ipl_cmdline)
++            kputs("\n" "IPL command line : "), kputs(ipl_cmdline);
++
++        if (initrd)
++            kputs("\n" "INITRD : "), kputs(initrd_cmd);
++
++        if (ipl_module_count)
++        {
++            kputs("\n" "System modules and data sets:");
++            for (uint32_t imodule = 0; imodule != ipl_module_count; ++imodule)
++            {
++                char* cmdline = ipl_modules[imodule].cmdline;
++                if ( cmdline ) 
++                    kputs("\n\t"), kputs(ipl_modules[imodule].cmdline);
++            }
++        }
++        kputc('\n');
++    }
++
++}
+\ No newline at end of file
