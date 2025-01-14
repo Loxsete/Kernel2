@@ -52,7 +52,7 @@ void char_ptr_to_array(const char *src, char *dest, size_t len) {
 uint32_t oct2bin(uint8_t* str, int size){
     uint32_t count = 0;
     for (int i = 0; i < size; i++)
-        count = count << 3 | (str[i - 1] - '0');
+        count = count << 3 | (str[i] - '0');
     return count;
 }
 
