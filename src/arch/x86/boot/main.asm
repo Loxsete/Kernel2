@@ -1,6 +1,8 @@
 global start
 
 extern long_mode_start
+extern boot_sig
+extern boot_context
 
 section .text
 bits 32
@@ -11,6 +13,8 @@ start:
 	mov esp, stack_top
 
 	call check_multiboot
+	mov [boot_sig], eax
+	mov [boot_context], ebx
 	call check_cpuid
 	call check_long_mode
 
