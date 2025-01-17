@@ -28,7 +28,10 @@ start:
 
 check_multiboot:
 	cmp eax, 0x36d76289
+	je .ret
+	cmp eax, 0x2BadB002
 	jne .no_multiboot
+	.ret:
 	ret
 .no_multiboot:
 	mov al, "M"
