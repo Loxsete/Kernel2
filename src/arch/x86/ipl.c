@@ -4,7 +4,9 @@
 #include <mem.h>
 
 #define MB2 0x36d76289
+#define MB0	0x2BADB002
 void mb2_ipl(void);
+void mb_ipl(void);
 
 void ipl()
 {
@@ -12,7 +14,11 @@ void ipl()
 	{
 	// https://www.gnu.org/software/grub/manual/multiboot2/multiboot.html#Machine-state
 	case MB2:	mb2_ipl(); break;
-    default:;
+	case MB0:	mb_ipl(); break;
+    default:
+    ipl_modules = 0;
+    initrd_size = ipl_module_count = 0;
+    ipl_cmdline = initrd_cmd = bootloader_name = 0;
 	}
 }
 uint32_t boot_sig;
@@ -109,5 +115,59 @@ void mb2_ipl(void)
         initrd_cmd = ipl_modules[0].cmdline;
         initrd_size = ipl_modules[0].size;
     }
+}
+
+	// multiboot.h
+#define MULTIBOOT_INFO_CMD_LINE 4
+#define MULTIBOOT_INFO_MODS	8
+#define MULTIBOOT_LOADER_NAME	0x200
+
+typedef
+struct multiboot_info
+{
+	uint32_t flags;
+	uint32_t mem_lower, mem_upper;
+	uint32_t boot_device;
+	uint32_t cmdline;
+	uint32_t mods_count;
+	uint32_t mods_addr;
+} multiboot_info_t;
+void
+mb_ipl(){
+
+    ipl_modules = 0;
+    initrd_size = ipl_module_count = 0;
+    ipl_cmdline = initrd_cmd = bootloader_name = 0;
+
+	multiboot_info_t *mbi = (multiboot_info_t*)(uint64_t)boot_context;
+	if ( 0 == boot_context )
+		return;
+	
+	if ( mbi->flags & MULTIBOOT_INFO_CMD_LINE )
+		ipl_cmdline = (char*)(uint64_t)mbi->cmdline;
+
+	if ( MULTIBOOT_INFO_MODS & mbi->flags )
+		ipl_module_count = mbi->mods_count;
+	if (ipl_module_count)
+	    {
+		ipl_modules = kalloc(ipl_module_count * sizeof (module_info_t));
+		
+		struct multiboot_mod_list {
+			uint32_t mod_start, mod_end;
+			uint32_t cmdline;
+			uint32_t zero;
+		} *modlist = (struct multiboot_mod_list*)(uint64_t)mbi->mods_addr;
+			
+		for ( uint32_t i = 0; i < ipl_module_count; ++i )
+		{		
+			ipl_modules[i].begin =(void*) modlist[i].mod_start;
+			ipl_modules[i].size = modlist[i].mod_end-modlist[i].mod_start;
+			ipl_modules[i].cmdline = (char*) modlist[i].cmdline;
+		}
+		// Let the first module be the initrd ( QEMU style multiboot)
+		initrd = ipl_modules[0].begin;
+		initrd_cmd = ipl_modules[0].cmdline;
+		initrd_size = ipl_modules[0].size;
+	    }
 }
 

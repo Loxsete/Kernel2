@@ -1,5 +1,6 @@
 section .multiboot_header
 extern start
+extern _end
 header_start:
 	; magic number
 	dd 0xe85250d6 ; multiboot2
@@ -19,5 +20,5 @@ header_end:
 	dd header_end
 	dd header_start
 	dd 0
-	dd 0 ;bss_end_addr
+	dd _end ;bss_end_addr
 	dd start
