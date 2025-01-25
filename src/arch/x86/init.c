@@ -2,6 +2,7 @@
 #include <arch/x86/screen.h>
 #include <arch/x86/idt.h>
 #include <arch/x86/pic.h>
+#include <arch/x86/ipl.h>
 #include <hal/init.h>
 #include <hal/driver.h>
 #include <hal/stdio.h>
@@ -34,6 +35,7 @@ driver_ops_t x86_io_driver_ops = {
 
 // Функция инициализации архитектуры
 void arch_init(void) {
+    ipl(); // получение настроек конфигурации системы от мультизагрузчика
     x86_pic_init(); // Инициализация PIC
     x86_idt_init(); // Инициализация IDT
     add_driver(&x86_io_driver_ops); // Добавляем драйвер
