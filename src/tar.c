@@ -10,6 +10,7 @@
 #define TAR_PADDING 0x200
 
 // Копирование памяти
+/*
 void* memcpy(void* dest, const void* src, size_t n) {
     char* d = dest;
     const char* s = src;
@@ -18,6 +19,7 @@ void* memcpy(void* dest, const void* src, size_t n) {
     }
     return dest;
 }
+*/
 
 // Заполнение памяти
 void* memset(void* s, int c, size_t n) {
