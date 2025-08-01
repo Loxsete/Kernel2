@@ -7,7 +7,6 @@ KCFLAGS := $(CFLAGS) -ffreestanding -fno-stack-protector -I include -Wall -Wextr
 KSOURCES := $(shell find src/ -name '*.c' ! -path "*/arch/*") \
             $(shell find src/arch/$(ARCH) -name "*.c")
 
-
 ARCH_ASMSOURCES := $(shell find src/arch/$(ARCH) -name '*.asm')
 
 KOBJECTS := $(patsubst src/%.c, build/%.o, $(KSOURCES))
@@ -34,6 +33,9 @@ $(KERNEL): $(OBJECTS) $(ARCH_LINKER)
 $(GRUB_ISO): $(KERNEL)
 	mkdir -p $(dir $@) && \
 	grub-mkrescue -o $@ $(KERNEL) grub/
+
+run: $(GRUB_ISO)
+	qemu-system-x86_64 -cdrom $(GRUB_ISO) -m 512M -serial stdio
 
 clean:
 	rm -fr build

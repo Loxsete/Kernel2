@@ -1,6 +1,9 @@
-#pragma once
+#ifndef MEM_H
+#define MEM_H
+
+#include <stddef.h>
 #include <stdint.h>
 
-// TODO: kfree
-// WARNING: PLEASE DONT USE THIS NOW UNTIL U GO INSANE
 void* kalloc(uint32_t size);
+
+#endif

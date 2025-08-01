@@ -16,15 +16,25 @@ void x86_clear_screen(void) {
 }
 
 void x86_putc(const char ch) {
-    if(screen_pos >= ((NUM_ROWS - (ch=='\n')) * NUM_COLS)){
-        memcpy(screen_buf, screen_buf + NUM_COLS, (screen_pos - NUM_COLS)*2);
-        screen_pos -= NUM_COLS - (screen_pos % NUM_COLS);
-        for(int i = 0; i < NUM_COLS; i++)
-            screen_buf[screen_pos + i] = 0;
-    }
-    if(ch == '\n'){
+    if (ch == '\n') {
         screen_pos += NUM_COLS - (screen_pos % NUM_COLS);
         return;
     }
+
+    if (ch == '\b') {
+        if (screen_pos > 0) {
+            screen_pos--;
+            screen_buf[screen_pos] = (0x0f << 8) | ' '; // затереть символ пробелом
+        }
+        return;
+    }
+
+    if (screen_pos >= ((NUM_ROWS - 1) * NUM_COLS)) {
+        memcpy(screen_buf, screen_buf + NUM_COLS, (NUM_ROWS - 1) * NUM_COLS * 2);
+        for (int i = 0; i < NUM_COLS; i++)
+            screen_buf[(NUM_ROWS - 1) * NUM_COLS + i] = 0;
+        screen_pos -= NUM_COLS;
+    }
+
     screen_buf[screen_pos++] = (0x0f << 8) | ch;
 }

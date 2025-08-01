@@ -1,27 +1,73 @@
+// src/arch/x86/i8042.c
+
 #include <arch/x86/i8042.h>
 #include <arch/x86/pic.h>
+#include <arch/x86/io.h>
+#include <keyboard_map.h>
+#include <cmd.h>
 #include <stdio.h>
-#include <arch/x86/io.h> // Заголовок для работы с I/O портами
-#include <keyboard_map.h> // Подключаем заголовок с картой клавиатуры
 
+#define KBD_DATA_PORT 0x60
+#define INPUT_BUFFER_SIZE 256
 
-#define KBD_DATA_PORT 0x60 // Порт данных клавиатуры
+static char input_buffer[INPUT_BUFFER_SIZE];
 
-// Функция для чтения символа с клавиатуры
-char x86_kbd_read(void) {
-    // Ждем, пока данные не будут готовы к чтению
-    while ((inb(0x64) & 0x01) == 0); // Проверяем флаг данных в порту 0x64
-    return inb(KBD_DATA_PORT); // Читаем символ из порта данных
+static size_t input_pos = 0;
+
+char x86_kbd_read(void)
+{
+	while ((inb(0x64) & 0x01) == 0);
+	return inb(KBD_DATA_PORT);
 }
 
-// Обработчик клавиатуры
-void kbd_handler(void) {
-    uint8_t ch = x86_kbd_read(); // Читаем символ с клавиатуры
-    if (keyboard_map[ch] != 0) // Проверяем, что символ в пределах массива и не нулевой
-        kputc(keyboard_map[ch]); // Выводим соответствующий символ на экран
+void kbd_handler(void)
+{
+    uint8_t scancode = x86_kbd_read();
+
+    if (scancode & 0x80)
+    {
+        return;
+    }
+
+    if (scancode == 0x0E)
+    {
+        if (input_pos > 0)
+        {
+            input_pos--;
+            input_buffer[input_pos] = 0;
+            kputc('\b');
+            kputc(' ');
+            kputc('\b');
+        }
+        return;
+    } else if (scancode == 0x1C)
+    {
+        if (input_pos > 0)
+        {
+            input_buffer[input_pos] = 0;
+            cmd_process(input_buffer);
+            input_pos = 0;
+            input_buffer[0] = 0;
+        }
+        kputc('\n');
+        kputc('>');
+        kputc(' ');
+        return;
+    }
+
+    char c = keyboard_map[scancode];  // Added semicolon
+    if (c != 0 && input_pos < INPUT_BUFFER_SIZE - 1)
+    {
+        input_buffer[input_pos++] = c;
+        input_buffer[input_pos] = 0;
+        kputc(c);
+    }
 }
 
-// Функция для инициализации драйвера ввода-вывода
-void x86_i8042_init(void) {
-    x86_pic_set_isr_handler(1, kbd_handler); // Устанавливаем обработчик для клавиатуры
+// Input-output
+
+void x86_i8042_init(void)
+{
+	x86_pic_set_isr_handler(1, kbd_handler);
+	kputs("> ");
 }

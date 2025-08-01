@@ -1,5 +1,6 @@
 #include <fs.h>
 #include <string.h>
+#include "tar.h"
 
 uint32_t fs_open(char* name, filesystem_info* filesystem, const filesystem_ops* ops){
     file _file;

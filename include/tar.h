@@ -1,6 +1,7 @@
 #pragma once
 
 #include <stdint.h>
+#include <stddef.h> // Добавляем для size_t
 #include <fs.h>
 
 typedef enum {
@@ -26,6 +27,8 @@ typedef struct {
     uint8_t device_minor[8];
     uint8_t file_path[155];
 } __attribute__((packed)) tar_entry;
+
+void char_ptr_to_array(const char* src, char* dest, size_t len); // Добавляем прототип
 
 void tar_open(file* _file, filesystem_info* filesystem);
 uint32_t tar_getsize(file* _file, filesystem_info* filesystem);
