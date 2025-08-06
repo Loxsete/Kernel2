@@ -11,7 +11,7 @@ void show_ipl_info(uint8_t infolevel);
 void kernel_main(void) {
     arch_init();
     kputs("ASINC Startinc \n");
-    kputs("OS booteds!\n");
+    kputs("OS booted!\n");
     kputc('\n');
     process_cmdline(ipl_cmdline);
 
