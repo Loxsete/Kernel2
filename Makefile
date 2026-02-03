@@ -1,9 +1,8 @@
 ARCH := x86
 KERNEL := build/arch/$(ARCH)/kernel.elf
 GRUB_ISO := build/arch/$(ARCH)/grub.iso
-KCFLAGS := $(CFLAGS) -ffreestanding -fno-stack-protector -I include -Wall -Wextra -Wpedantic -nostdinc
+KCFLAGS := $(CFLAGS) -std=gnu17 -ffreestanding -fno-stack-protector -I include -Wall -Wextra -Wpedantic -nostdinc
 
-# Добавляем dyn_mem.c в список исходников
 KSOURCES := $(shell find src/ -name '*.c' ! -path "*/arch/*") \
             $(shell find src/arch/$(ARCH) -name "*.c")
 
